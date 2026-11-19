@@ -5,14 +5,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: - run: unzip -q "$(find . -maxdepth 2 -name '*.zip' | head -n 1)"
+
+      - name: Unpack project
+        run: |
+          zip=$(find . -maxdepth 2 -name '*.zip' | head -n 1)
+          echo "Using zip: $zip"
+          unzip -q -o "$zip" -d unpacked
+          settings=$(find unpacked -name settings.gradle.kts | head -n 1)
+          echo "PROJECT_DIR=$(dirname "$settings")" >> "$GITHUB_ENV"
+
       - uses: actions/setup-java@v4
-        with: { distribution: temurin, java-version: 17 }
+        with:
+          distribution: temurin
+          java-version: 17
+
       - uses: gradle/actions/setup-gradle@v4
-        with: { gradle-version: 8.9 }
-      - run: gradle assembleDebug --no-daemon
-        working-directory: LollyDemo
+        with:
+          gradle-version: 8.9
+
+      - name: Build
+        run: gradle assembleDebug --no-daemon
+        working-directory: ${{ env.PROJECT_DIR }}
+
       - uses: actions/upload-artifact@v4
         with:
           name: Lolly-debug-apk
-          path: LollyDemo/app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/app-debug.apk
